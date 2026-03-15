@@ -2,21 +2,71 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pro Touch Diagnostic</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Pro Touch Fullscreen Diagnostic</title>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        #grid-container { display: grid; width: 100vw; height: 100vh; grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(25, 1fr); }
-        .tile { border: 0.1px solid #222; box-sizing: border-box; }
-        .active { background: #00ff88; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); border: none; }
-        #ui { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: none; width: 90%; }
-        .stat-box { flex: 1; background: rgba(30, 30, 30, 0.9); color: white; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid #444; }
-        .label { font-size: 10px; text-transform: uppercase; color: #888; margin-bottom: 4px; }
-        .value { font-size: 18px; font-weight: bold; }
-        #reset-btn { pointer-events: auto; background: #ff4444; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; margin-top: 10px; }
+        :root { --ui-height: 90px; }
+
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            overflow: hidden; background: #000; 
+            font-family: -apple-system, system-ui, sans-serif;
+            touch-action: none; 
+        }
+
+        /* Fullscreen Start Overlay */
+        #overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 1000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: white; text-align: center;
+        }
+
+        #start-btn {
+            background: #00ff88; color: #000; border: none;
+            padding: 20px 40px; font-size: 20px; font-weight: bold;
+            border-radius: 50px; cursor: pointer; margin-top: 20px;
+        }
+
+        #grid-container { 
+            display: grid; width: 100vw; height: calc(100vh - var(--ui-height)); 
+            box-sizing: border-box;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+            grid-template-columns: repeat(10, 1fr); 
+            grid-template-rows: repeat(20, 1fr); 
+            gap: 1.5px; background: #111;
+        }
+
+        .tile { background: #222; }
+        .active { background: #00ff88 !important; box-shadow: 0 0 10px #00ff88; }
+
+        #ui { 
+            position: fixed; bottom: 0; left: 0; right: 0;
+            height: var(--ui-height); background: #111;
+            display: flex; align-items: center; justify-content: space-around;
+            padding-bottom: env(safe-area-inset-bottom);
+            border-top: 1px solid #333; z-index: 100;
+        }
+
+        .stat-box { text-align: center; color: white; }
+        .label { font-size: 10px; color: #888; text-transform: uppercase; }
+        .value { font-size: 20px; font-weight: bold; }
+
+        .btn-group { display: flex; gap: 10px; }
+        button.ctrl { 
+            padding: 10px 15px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer;
+        }
+        #reset-btn { background: #444; color: white; }
+        #exit-btn { background: #ff4444; color: white; }
     </style>
 </head>
 <body>
+
+    <div id="overlay">
+        <h2>Touch Screen Diagnostic</h2>
+        <p>Tap below to enter Fullscreen Mode</p>
+        <button id="start-btn">START TEST</button>
+    </div>
 
     <div id="grid-container"></div>
 
@@ -26,30 +76,54 @@
             <div id="percent" class="value">0%</div>
         </div>
         <div class="stat-box">
-            <div class="label">Fingers</div>
+            <div class="label">Points</div>
             <div id="touch-count" class="value">0</div>
         </div>
-        <button id="reset-btn" onclick="location.reload()">RESET</button>
+        <div class="btn-group">
+            <button id="reset-btn" class="ctrl" onclick="location.reload()">RESET</button>
+            <button id="exit-btn" class="ctrl" onclick="exitFullscreen()">EXIT</button>
+        </div>
     </div>
 
     <script>
         const container = document.getElementById('grid-container');
         const percentLabel = document.getElementById('percent');
         const touchLabel = document.getElementById('touch-count');
+        const overlay = document.getElementById('overlay');
+        const startBtn = document.getElementById('start-btn');
         
-        // Higher density for modern screens (15x25)
-        const totalTiles = 15 * 25;
+        const totalTiles = 10 * 20;
         let activatedCount = 0;
 
+        // Create Grid
         for (let i = 0; i < totalTiles; i++) {
             const tile = document.createElement('div');
             tile.classList.add('tile');
             container.appendChild(tile);
         }
 
+        // Fullscreen Logic
+        startBtn.addEventListener('click', () => {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            } else if (document.documentElement.webkitRequestFullscreen) { /* Safari/iOS */
+                document.documentElement.webkitRequestFullscreen();
+            }
+            overlay.style.display = 'none';
+        });
+
+        function exitFullscreen() {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
+            overlay.style.display = 'flex';
+        }
+
         function handleTouch(e) {
             e.preventDefault();
-            const touches = e.touches || [];
+            const touches = e.touches || (e.buttons === 1 ? [e] : []);
             touchLabel.innerText = touches.length;
             
             for (let i = 0; i < touches.length; i++) {
@@ -57,17 +131,24 @@
                 if (element && element.classList.contains('tile') && !element.classList.contains('active')) {
                     element.classList.add('active');
                     activatedCount++;
-                    const score = Math.round((activatedCount / totalTiles) * 100);
+                    const score = Math.floor((activatedCount / totalTiles) * 100);
                     percentLabel.innerText = score + "%";
-                    if (score >= 100) percentLabel.style.color = "#00ff88";
+                    if (score >= 100) {
+                        percentLabel.style.color = "#00ff88";
+                        percentLabel.innerText = "100%";
+                    }
                 }
             }
         }
 
         container.addEventListener('touchstart', handleTouch);
         container.addEventListener('touchmove', handleTouch);
-        container.addEventListener('touchend', (e) => {
-            touchLabel.innerText = e.touches.length;
+        container.addEventListener('touchend', (e) => touchLabel.innerText = e.touches.length);
+        container.addEventListener('mousemove', (e) => { if (e.buttons === 1) handleTouch(e); });
+
+        // Listen for user hitting "Esc" to bring back the overlay
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) overlay.style.display = 'flex';
         });
     </script>
 </body>
